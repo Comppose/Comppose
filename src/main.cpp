@@ -5,7 +5,15 @@ using namespace comppose;
 
 void Comppose()
 {
-    Row([]{
-        Text("Hello World");
+    Row([] {
+        Column([] {
+            Text("Hello");
+            Text("World");
+        });
+
+        Column([] {
+            Text("Hello");
+            Text("World");
+        });
     });
 }

@@ -19,7 +19,10 @@ namespace comppose
         Widget &operator=(const Widget &) = delete;
         Widget(Widget &&) = default;
         Widget &operator=(Widget &&) = default;
-        Widget() : node(YGNodeNew(), &YGNodeFree) {}
+        Widget() : node(YGNodeNew(), &YGNodeFree)
+        {
+            YGNodeSetContext(node.get(), this);
+        }
 
         float GetLeftPosition() const noexcept
         {
@@ -31,49 +34,101 @@ namespace comppose
             return YGNodeLayoutGetTop(node.get());
         }
 
+        void SetWidth(float width) const noexcept
+        {
+            YGNodeStyleSetWidth(node.get(), width);
+        }
+
+        void SetHeight(float height) const noexcept
+        {
+            YGNodeStyleSetHeight(node.get(), height);
+        }
+
     protected:
+        friend class ContainerWidget;
         using YGNodePtr = std::unique_ptr<YGNode, decltype(&YGNodeFree)>;
         YGNodePtr node;
     };
 
-    template <YGFlexDirection flexDirection>
     class ContainerWidget : public Widget
     {
     public:
-        ContainerWidget() : Widget()
+        ContainerWidget(YGFlexDirection flexDirection) : Widget()
         {
             YGNodeStyleSetFlexGrow(node.get(), 1.0f);
             YGNodeStyleSetFlexDirection(node.get(), flexDirection);
         }
 
-        void AddChildren(std::unique_ptr<Widget> child)
+        void AddChild(std::shared_ptr<Widget> child)
         {
             children.push_back(std::move(child));
         }
 
     private:
-        std::vector<std::unique_ptr<Widget>> children;
+        std::vector<std::shared_ptr<Widget>> children;
     };
 
-    using RowWidget = ContainerWidget<YGFlexDirection::YGFlexDirectionRow>;
+    static inline std::vector<std::shared_ptr<ContainerWidget>> buildContext{
+        std::make_shared<ContainerWidget>(YGFlexDirectionColumn),
+    };
+
+    class RowWidget : public ContainerWidget
+    {
+    public:
+        RowWidget() : ContainerWidget(YGFlexDirection::YGFlexDirectionRow) {};
+    };
 
     void Row(Content content)
     {
-        std::cout << "Row" << std::endl;
+        auto parentContainer = buildContext.back();
+        auto row = std::make_shared<RowWidget>();
+        buildContext.emplace_back(row);
+        parentContainer->AddChild(row);
         content();
+        buildContext.pop_back();
     }
 
-    using ColumnWidget = ContainerWidget<YGFlexDirection::YGFlexDirectionColumn>;
-
-    void Column(Content)
+    class ColumnWidget : public ContainerWidget
     {
-        std::cout << "Column" << std::endl;
+    public:
+        ColumnWidget() : ContainerWidget(YGFlexDirection::YGFlexDirectionColumn) {};
+    };
+
+    void Column(Content content)
+    {
+        auto parentContainer = buildContext.back();
+        auto column = std::shared_ptr<ColumnWidget>();
+        buildContext.emplace_back(column);
+        parentContainer->AddChild(column);
+        content();
+        buildContext.pop_back();
     }
 
     class TextWidget : public Widget
     {
     public:
-        TextWidget(std::string &&text) : Widget() {}
+        TextWidget(std::string &&text) : text(text), Widget() {}
+
+        size_t GetTextSize() const
+        {
+            return text.size();
+        }
+
+    private:
+        std::string text;
+        static YGSize MeasureText(
+            YGNodeConstRef node,
+            float width,
+            YGMeasureMode widthMode,
+            float height,
+            YGMeasureMode heightMode)
+        {
+            auto textWidget = (TextWidget *)YGNodeGetContext(node);
+            float a = (float)textWidget->GetTextSize();
+            float b = 30.0f;
+
+            return {a, b};
+        }
     };
 
     void Text(std::string &&text)
@@ -99,6 +154,9 @@ int main()
             {
                 const auto [width, height] = resize->size;
                 window.setView(sf::View(sf::FloatRect({0, 0}, {(float)width, (float)height})));
+                auto root = comppose::buildContext.at(0);
+                root->SetWidth(width);
+                root->SetHeight(height);
             }
         }
 
