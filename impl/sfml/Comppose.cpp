@@ -24,8 +24,6 @@ namespace comppose
     }
 }
 
-void Comppose();
-
 int main()
 {
     sf::RenderWindow window(sf::VideoMode({320, 240}), "Pontino");

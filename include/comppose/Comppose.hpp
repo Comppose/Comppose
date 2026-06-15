@@ -10,3 +10,5 @@ namespace comppose {
     void Column(Content);
     void Text(std::string&& text);
 }
+
+void Comppose();
