@@ -214,6 +214,8 @@ int main()
     sf::RenderWindow window(sf::VideoMode({320, 240}), "Pontino");
     window.setFramerateLimit(30);
 
+    Comppose();
+
     while (window.isOpen())
     {
         while (const std::optional event = window.pollEvent())
@@ -234,7 +236,6 @@ int main()
 
         window.clear(sf::Color::Black);
 
-        Comppose();
         auto root = comppose::buildContext.at(0);
         auto buildContext = comppose::BuildContext{
             root->GetLeftPosition(),
