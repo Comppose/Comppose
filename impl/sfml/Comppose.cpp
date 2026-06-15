@@ -11,6 +11,23 @@
 
 namespace comppose
 {
+    struct BuildContext
+    {
+        float left;
+        float top;
+        float width;
+        float height;
+
+        BuildContext forward(
+            float left,
+            float top,
+            float width,
+            float height) const
+        {
+            return BuildContext{this->left + left, this->top + top, width, height};
+        }
+    };
+
     class Widget
     {
     public:
@@ -24,6 +41,19 @@ namespace comppose
             YGNodeSetContext(node.get(), this);
         }
 
+        void Measure() const noexcept
+        {
+            YGNodeCalculateLayout(
+                node.get(),
+                YGUndefined,
+                YGUndefined,
+                YGDirectionLTR);
+        }
+
+        virtual void Draw(
+            BuildContext &buildContext,
+            sf::RenderTarget &target) = 0;
+
         float GetLeftPosition() const noexcept
         {
             return YGNodeLayoutGetLeft(node.get());
@@ -32,6 +62,16 @@ namespace comppose
         float GetTopPosition() const noexcept
         {
             return YGNodeLayoutGetTop(node.get());
+        }
+
+        float GetWidth() const noexcept
+        {
+            return YGNodeStyleGetWidth(node.get()).value;
+        }
+
+        float GetHeight() const noexcept
+        {
+            return YGNodeStyleGetHeight(node.get()).value;
         }
 
         void SetWidth(float width) const noexcept
@@ -61,7 +101,26 @@ namespace comppose
 
         void AddChild(std::shared_ptr<Widget> child)
         {
-            children.push_back(std::move(child));
+            YGNodeInsertChild(
+                node.get(),
+                child->node.get(),
+                YGNodeGetChildCount(node.get()));
+            children.push_back(child);
+        }
+
+        void Draw(
+            BuildContext &buildContext,
+            sf::RenderTarget &target) override
+        {
+            auto next = buildContext.forward(
+                GetLeftPosition(),
+                GetTopPosition(),
+                GetWidth(),
+                GetHeight());
+            for (const auto &child : children)
+            {
+                child->Draw(next, target);
+            }
         }
 
     private:
@@ -97,7 +156,7 @@ namespace comppose
     void Column(Content content)
     {
         auto parentContainer = buildContext.back();
-        auto column = std::shared_ptr<ColumnWidget>();
+        auto column = std::make_shared<ColumnWidget>();
         buildContext.emplace_back(column);
         parentContainer->AddChild(column);
         content();
@@ -107,11 +166,22 @@ namespace comppose
     class TextWidget : public Widget
     {
     public:
-        TextWidget(std::string &&text) : text(text), Widget() {}
+        TextWidget(std::string text) : text(text), Widget()
+        {
+            YGNodeSetNodeType(node.get(), YGNodeTypeText);
+            YGNodeSetMeasureFunc(node.get(), MeasureText);
+        }
 
         size_t GetTextSize() const
         {
             return text.size();
+        }
+
+        void Draw(
+            BuildContext &buildContext,
+            sf::RenderTarget &target) override
+        {
+            std::cout << "DRAW TEXT" << std::endl;
         }
 
     private:
@@ -133,7 +203,9 @@ namespace comppose
 
     void Text(std::string &&text)
     {
-        std::cout << "Text" << std::endl;
+        auto parentContainer = buildContext.back();
+        auto widget = std::make_shared<TextWidget>(text);
+        parentContainer->AddChild(widget);
     }
 }
 
@@ -163,6 +235,15 @@ int main()
         window.clear(sf::Color::Black);
 
         Comppose();
+        auto root = comppose::buildContext.at(0);
+        auto buildContext = comppose::BuildContext{
+            root->GetLeftPosition(),
+            root->GetTopPosition(),
+            root->GetWidth(),
+            root->GetHeight(),
+        };
+        root->Measure();
+        root->Draw(buildContext, window);
 
         window.display();
     }
