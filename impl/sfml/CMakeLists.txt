@@ -9,5 +9,10 @@ FetchContent_Declare(SFML
 FetchContent_MakeAvailable(SFML)
 
 add_library(Comppose_SFML STATIC Comppose.cpp)
-target_link_libraries(Comppose_SFML Comppose)
 add_library(Comppose::SFML ALIAS Comppose_SFML)
+
+target_link_libraries(Comppose_SFML PRIVATE Comppose SFML::Graphics)
+
+if (ANDROID)
+    target_link_libraries(Comppose_SFML PRIVATE SFML::Main)
+endif()

@@ -3,10 +3,8 @@
 #include <comppose/Comppose.hpp>
 using namespace comppose;
 
-int main()
+void Comppose()
 {
-    std::cout << "Hello World" << std::endl;
-
     Row([]{
         Text("Hello World");
     });
