@@ -6,6 +6,7 @@ target_include_directories(Comppose INTERFACE include)
 
 subdirs(
     impl/sfml
+    assets
 )
 
 add_executable(demo src/main.cpp)

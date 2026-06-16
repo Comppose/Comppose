@@ -9,11 +9,21 @@ void Comppose()
         Column([] {
             Text("Hello");
             Text("World");
+
+            Row([] {
+                Text("Hello");
+                Text("World");
+            });
         });
 
         Column([] {
             Text("Hello");
             Text("World");
+
+            Row([] {
+                Text("Hello");
+                Text("World");
+            });
         });
     });
 }

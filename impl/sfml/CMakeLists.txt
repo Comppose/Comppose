@@ -22,6 +22,7 @@ add_library(Comppose::SFML ALIAS Comppose_SFML)
 target_link_libraries(
     Comppose_SFML
     PRIVATE
+    assets
     yogacore
     Comppose
     SFML::Graphics)

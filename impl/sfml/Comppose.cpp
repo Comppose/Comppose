@@ -9,6 +9,10 @@
 
 #include <yoga/Yoga.h>
 
+#include <assets/font.h>
+
+static sf::Font defaultFont(default_font_ttf, default_font_ttf_size);
+
 namespace comppose
 {
     struct BuildContext
@@ -166,25 +170,31 @@ namespace comppose
     class TextWidget : public Widget
     {
     public:
-        TextWidget(std::string text) : text(text), Widget()
+        TextWidget(std::string text) : text(text), sf(defaultFont, text), Widget()
         {
             YGNodeSetNodeType(node.get(), YGNodeTypeText);
             YGNodeSetMeasureFunc(node.get(), MeasureText);
         }
 
-        size_t GetTextSize() const
+        sf::Vector2f GetTextSize() const
         {
-            return text.size();
+            return sf.getLocalBounds().size;
         }
 
         void Draw(
             BuildContext &buildContext,
             sf::RenderTarget &target) override
         {
-            std::cout << "DRAW TEXT" << std::endl;
+            auto left = GetLeftPosition();
+            auto top = GetTopPosition();
+
+            sf.setPosition({buildContext.left + left,
+                            buildContext.top + top});
+            target.draw(sf);
         }
 
     private:
+        sf::Text sf;
         std::string text;
         static YGSize MeasureText(
             YGNodeConstRef node,
@@ -194,8 +204,7 @@ namespace comppose
             YGMeasureMode heightMode)
         {
             auto textWidget = (TextWidget *)YGNodeGetContext(node);
-            float a = (float)textWidget->GetTextSize();
-            float b = 30.0f;
+            auto [a, b] = textWidget->sf.getLocalBounds().size;
 
             return {a, b};
         }
